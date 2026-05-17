@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ghar Ka Hisaab</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg:#ffffff;--bg2:#f5f5f3;--bg3:#eeede9;
+    --text:#1a1a18;--text2:#6b6b67;--text3:#a0a09b;
+    --border:rgba(0,0,0,0.1);--border2:rgba(0,0,0,0.18);
+    --radius:10px;--radius-lg:14px;
+    --green:#3B6D11;--green-bg:#EAF3DE;--green-text:#27500A;
+    --blue:#185FA5;--blue-bg:#E6F1FB;--blue-text:#0C447C;
+    --amber:#BA7517;--amber-bg:#FAEEDA;--amber-text:#633806;
+    --red:#A32D2D;--red-bg:#FCEBEB;--red-text:#501313;
+    --gray-bg:#F1EFE8;--gray-text:#444441;
+  }
+  @media(prefers-color-scheme:dark){
+    :root{
+      --bg:#1c1c1a;--bg2:#252523;--bg3:#2e2e2b;
+      --text:#f0efe9;--text2:#a0a09b;--text3:#6b6b67;
+      --border:rgba(255,255,255,0.1);--border2:rgba(255,255,255,0.18);
+      --green-bg:#173404;--green-text:#C0DD97;
+      --blue-bg:#042C53;--blue-text:#B5D4F4;
+      --amber-bg:#412402;--amber-text:#FAC775;
+      --red-bg:#501313;--red-text:#F7C1C1;
+      --gray-bg:#2C2C2A;--gray-text:#D3D1C7;
+    }
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg3);color:var(--text);min-height:100vh}
+
+  /* SETUP SCREEN */
+  #setup-screen{position:fixed;inset:0;background:var(--bg3);z-index:100;display:flex;align-items:center;justify-content:center;padding:1.5rem}
+  .setup-card{background:var(--bg);border:0.5px solid var(--border2);border-radius:var(--radius-lg);padding:1.5rem;max-width:440px;width:100%}
+  .setup-logo{font-size:22px;font-weight:700;margin-bottom:4px}
+  .setup-logo span{color:var(--green)}
+  .setup-sub{font-size:13px;color:var(--text2);margin-bottom:1.5rem;line-height:1.6}
+  .step-row{display:flex;gap:12px;align-items:flex-start;margin-bottom:1.25rem}
+  .step-num{width:26px;height:26px;border-radius:50%;background:var(--green-bg);color:var(--green-text);font-size:12px;font-weight:700;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+  .step-text{font-size:13px;color:var(--text);line-height:1.6}
+  .step-text a{color:var(--blue);text-decoration:none}
+  .step-text code{background:var(--bg2);padding:2px 6px;border-radius:5px;font-size:12px;font-family:monospace}
+  .input-wrap{margin-top:8px}
+  input,select{font-family:inherit;font-size:14px;width:100%;padding:10px 12px;border:0.5px solid var(--border2);border-radius:var(--radius);background:var(--bg2);color:var(--text);outline:none}
+  input:focus,select:focus{border-color:var(--green);box-shadow:0 0 0 3px rgba(59,109,17,0.12)}
+  .btn{padding:11px 20px;border-radius:var(--radius);cursor:pointer;font-size:14px;font-weight:600;font-family:inherit;border:none;transition:all .12s;width:100%}
+  .btn-primary{background:var(--green);color:#fff;margin-top:1rem}
+  .btn-primary:hover{opacity:.88}
+  .btn-sm{padding:5px 10px;font-size:12px;border-radius:8px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;color:var(--text2);font-family:inherit;width:auto}
+  .btn-sm:hover{background:var(--bg2)}
+  .err{color:var(--red);font-size:13px;margin-top:8px;display:none}
+
+  /* APP */
+  #app-screen{display:none}
+  .app-header{background:var(--bg);border-bottom:0.5px solid var(--border);padding:0 1rem;display:flex;align-items:center;justify-content:space-between;height:56px;position:sticky;top:0;z-index:10}
+  .app-title{font-size:17px;font-weight:700;letter-spacing:-.3px}
+  .app-title span{color:var(--green)}
+  .sync-pill{font-size:11px;font-weight:600;padding:3px 10px;border-radius:20px;display:flex;align-items:center;gap:4px}
+  .sync-ok{background:var(--green-bg);color:var(--green-text)}
+  .sync-busy{background:var(--amber-bg);color:var(--amber-text)}
+  .sync-err{background:var(--red-bg);color:var(--red-text)}
+  .nav{display:flex;background:var(--bg);border-bottom:0.5px solid var(--border);overflow-x:auto}
+  .nav-btn{flex:1;min-width:72px;padding:12px 6px;border:none;background:transparent;cursor:pointer;font-size:12px;color:var(--text2);font-family:inherit;display:flex;flex-direction:column;align-items:center;gap:3px;border-bottom:2px solid transparent}
+  .nav-btn i{font-size:18px}
+  .nav-btn.active{color:var(--green);border-bottom-color:var(--green)}
+  .main{max-width:600px;margin:0 auto;padding:1rem}
+  .section{display:none}.section.active{display:block}
+  .metric-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1rem}
+  .metric{background:var(--bg2);border-radius:var(--radius);padding:12px 14px}
+  .metric-label{font-size:12px;color:var(--text2);margin-bottom:3px}
+  .metric-value{font-size:21px;font-weight:700}
+  .metric-sub{font-size:11px;color:var(--text3);margin-top:2px}
+  .card{background:var(--bg);border:0.5px solid var(--border);border-radius:var(--radius-lg);padding:1rem 1.25rem;margin-bottom:1rem}
+  .card-title{font-size:11px;font-weight:700;color:var(--text2);margin-bottom:12px;text-transform:uppercase;letter-spacing:.06em}
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px}
+  .form-group{display:flex;flex-direction:column;gap:5px}
+  .form-group label{font-size:12px;color:var(--text2);font-weight:600}
+  .row{display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:0.5px solid var(--border)}
+  .row:last-child{border-bottom:none}
+  .avatar{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;flex-shrink:0}
+  .av-y{background:var(--green-bg);color:var(--green-text)}
+  .av-w{background:var(--blue-bg);color:var(--blue-text)}
+  .badge{display:inline-flex;align-items:center;font-size:11px;font-weight:600;padding:2px 9px;border-radius:20px;white-space:nowrap}
+  .bg-g{background:var(--green-bg);color:var(--green-text)}
+  .bg-h{background:var(--blue-bg);color:var(--blue-text)}
+  .bg-f{background:var(--amber-bg);color:var(--amber-text)}
+  .bg-o{background:var(--gray-bg);color:var(--gray-text)}
+  .tag-ok{background:var(--green-bg);color:var(--green-text)}
+  .tag-soon{background:var(--amber-bg);color:var(--amber-text)}
+  .tag-overdue{background:var(--red-bg);color:var(--red-text)}
+  .tag-new{background:var(--gray-bg);color:var(--gray-text)}
+  .filter-row{display:flex;gap:8px;margin-bottom:1rem;flex-wrap:wrap}
+  .fbtn{padding:6px 14px;border-radius:20px;font-size:12px;border:0.5px solid var(--border2);background:transparent;cursor:pointer;color:var(--text2);font-family:inherit}
+  .fbtn.active{background:var(--green);color:#fff;border-color:transparent}
+  .empty{text-align:center;padding:2.5rem 1rem;color:var(--text3);font-size:13px;line-height:1.6}
+  .empty i{font-size:32px;display:block;margin-bottom:8px}
+  .chart-wrap{position:relative;width:100%;height:200px;margin-bottom:1rem}
+  .prog-wrap{height:4px;background:var(--bg3);border-radius:2px;margin-top:6px}
+  .prog-bar{height:4px;border-radius:2px}
+  .info-box{background:var(--blue-bg);color:var(--blue-text);border-radius:var(--radius);padding:12px 14px;font-size:13px;line-height:1.6;margin-bottom:1rem;display:flex;gap:8px;align-items:flex-start}
+  .loading-overlay{position:fixed;inset:0;background:rgba(0,0,0,.35);z-index:50;display:none;align-items:center;justify-content:center}
+  .loading-box{background:var(--bg);border-radius:var(--radius-lg);padding:1.5rem 2rem;text-align:center;font-size:14px;color:var(--text2)}
+  .spinner{width:28px;height:28px;border:3px solid var(--border2);border-top-color:var(--green);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 10px}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  @media(max-width:400px){.form-row{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loading">
+  <div class="loading-box"><div class="spinner"></div><span id="loading-msg">Syncing with Google Sheets...</span></div>
+</div>
+
+<!-- SETUP SCREEN -->
+<div id="setup-screen">
+  <div class="setup-card">
+    <div class="setup-logo">Ghar Ka <span>Hisaab</span></div>
+    <div class="setup-sub">One-time setup — takes 3 minutes. After this, you and your wife share live data automatically.</div>
+
+    <div class="step-row">
+      <div class="step-num">1</div>
+      <div class="step-text">
+        Go to <a href="https://sheets.google.com" target="_blank">sheets.google.com</a> and create a new blank spreadsheet. Copy its URL — it looks like:<br>
+        <code>docs.google.com/spreadsheets/d/<b>SPREADSHEET_ID</b>/edit</code><br>
+        Paste the full URL or just the ID below.
+        <div class="input-wrap"><input type="text" id="sheet-id-input" placeholder="Paste spreadsheet URL or ID here"></div>
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">2</div>
+      <div class="step-text">
+        In that spreadsheet, click <b>Share</b> (top right) → set "Anyone with the link" → <b>Editor</b>. This lets both phones read and write.
+      </div>
+    </div>
+
+    <div class="step-row">
+      <div class="step-num">3</div>
+      <div class="step-text">
+        Go to <a href="https://script.google.com" target="_blank">script.google.com</a> → New Project → paste the script below → click Deploy → New deployment → Web app → Execute as <b>Me</b>, access <b>Anyone</b> → Deploy → copy the Web App URL.
+        <div class="input-wrap" style="margin-bottom:8px">
+          <textarea id="gs-script" readonly rows="5" style="font-size:11px;font-family:monospace;background:var(--bg2);border:0.5px solid var(--border2);border-radius:8px;padding:8px;width:100%;resize:none;color:var(--text2)"></textarea>
+          <button class="btn-sm" onclick="copyScript()" style="margin-top:6px"><i class="ti ti-copy"></i> Copy script</button>
+        </div>
+        <div class="input-wrap"><input type="text" id="webapp-url-input" placeholder="Paste Web App URL here"></div>
+      </div>
+    </div>
+
+    <div id="setup-err" class="err">Please fill in both the Spreadsheet ID and Web App URL.</div>
+    <button class="btn btn-primary" onclick="startApp()"><i class="ti ti-rocket"></i> Start the app</button>
+  </div>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen">
+  <div class="app-header">
+    <div class="app-title">Ghar Ka <span>Hisaab</span></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="sync-pill sync-ok" id="sync-badge"><i class="ti ti-circle-check" style="font-size:13px"></i> Synced</div>
+      <button class="btn-sm" onclick="resetSetup()" title="Settings"><i class="ti ti-settings"></i></button>
+    </div>
+  </div>
+  <nav class="nav">
+    <button class="nav-btn active" onclick="showTab('dashboard',this)"><i class="ti ti-chart-bar"></i><span>Dashboard</span></button>
+    <button class="nav-btn" onclick="showTab('expenses',this)"><i class="ti ti-receipt"></i><span>Expenses</span></button>
+    <button class="nav-btn" onclick="showTab('restock',this)"><i class="ti ti-refresh"></i><span>Restock</span></button>
+    <button class="nav-btn" onclick="showTab('report',this)"><i class="ti ti-file-text"></i><span>Reports</span></button>
+  </nav>
+  <div class="main">
+
+    <div id="dashboard" class="section active">
+      <div class="metric-grid" id="dash-metrics"></div>
+      <div class="card"><div class="card-title">This month by category</div><div class="chart-wrap"><canvas id="monthChart" role="img" aria-label="Monthly spending by category"></canvas></div></div>
+      <div class="card"><div class="card-title">Who paid this month</div><div id="split-view"></div></div>
+      <div class="card"><div class="card-title"><i class="ti ti-alert-triangle" style="font-size:13px;vertical-align:-1px"></i> Restock alerts</div><div id="dash-alerts"></div></div>
+    </div>
+
+    <div id="expenses" class="section">
+      <div class="card">
+        <div class="card-title">Add expense</div>
+        <div class="form-row">
+          <div class="form-group"><label>Item name</label><input type="text" id="exp-name" placeholder="e.g. Sugar 1kg"></div>
+          <div class="form-group"><label>Amount (₹)</label><input type="number" id="exp-amount" placeholder="0" min="0" inputmode="decimal"></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Category</label>
+            <select id="exp-cat">
+              <option value="grocery">Grocery</option>
+              <option value="household">Household</option>
+              <option value="food">Food / Dining</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Who paid?</label>
+            <select id="exp-who"><option value="You">You</option><option value="Wife">Wife</option></select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Date</label><input type="date" id="exp-date"></div>
+          <div class="form-group"><label>Note (optional)</label><input type="text" id="exp-note" placeholder="e.g. Big Bazaar"></div>
+        </div>
+        <button class="btn btn-primary" onclick="addExpense()" style="margin-top:4px">Add expense</button>
+      </div>
+      <div class="filter-row">
+        <button class="fbtn active" onclick="filterCat('all',this)">All</button>
+        <button class="fbtn" onclick="filterCat('grocery',this)">Grocery</button>
+        <button class="fbtn" onclick="filterCat('household',this)">Household</button>
+        <button class="fbtn" onclick="filterCat('food',this)">Food</button>
+        <button class="fbtn" onclick="filterCat('other',this)">Other</button>
+      </div>
+      <div class="card"><div id="expense-list"></div></div>
+    </div>
+
+    <div id="restock" class="section">
+      <div class="info-box"><i class="ti ti-info-circle" style="font-size:16px;flex-shrink:0;margin-top:1px"></i><span>Patterns are detected automatically from your expenses. Just keep logging what you buy — no manual setup needed.</span></div>
+      <div class="card"><div id="restock-list"></div></div>
+    </div>
+
+    <div id="report" class="section">
+      <div class="card">
+        <div class="card-title">Period</div>
+        <select id="rep-period" onchange="renderReport()" style="width:auto">
+          <option value="week">This week</option>
+          <option value="month" selected>This month</option>
+          <option value="last30">Last 30 days</option>
+          <option value="all">All time</option>
+        </select>
+      </div>
+      <div class="metric-grid" id="rep-metrics"></div>
+      <div class="card">
+        <div class="card-title">Category breakdown</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="repChart" role="img" aria-label="Spending by category"></canvas></div>
+        <div id="rep-legend" style="display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;font-size:12px;color:var(--text2)"></div>
+      </div>
+      <div class="card"><div class="card-title">All transactions</div><div id="rep-list"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+const GS_SCRIPT = `function doGet(e) {
+  return handleRequest(e);
+}
+function doPost(e) {
+  return handleRequest(e);
+}
+function handleRequest(e) {
+  var ss = SpreadsheetApp.openById("SPREADSHEET_ID_HERE");
+  var sheet = ss.getSheetByName("Expenses") || ss.insertSheet("Expenses");
+  var action = (e.parameter && e.parameter.action) || (e.postData && JSON.parse(e.postData.contents).action);
+  var output;
+  if (action === "read") {
+    var data = sheet.getDataRange().getValues();
+    output = ContentService.createTextOutput(JSON.stringify({ ok: true, rows: data }));
+  } else if (action === "write") {
+    var body = JSON.parse(e.postData.contents);
+    sheet.clearContents();
+    if (body.rows && body.rows.length > 0) {
+      sheet.getRange(1, 1, body.rows.length, body.rows[0].length).setValues(body.rows);
+    }
+    output = ContentService.createTextOutput(JSON.stringify({ ok: true }));
+  } else {
+    output = ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Unknown action" }));
+  }
+  output.setMimeType(ContentService.MimeType.JSON);
+  return output;
+}`;
+
+let WEBAPP_URL = '';
+let expenses = [];
+let catFilter = 'all';
+let mChart = null, rChart = null;
+let syncTimer = null;
+
+function init() {
+  document.getElementById('gs-script').value = GS_SCRIPT;
+  const saved = localStorage.getItem('ghk_config');
+  if (saved) {
+    const cfg = JSON.parse(saved);
+    WEBAPP_URL = cfg.webappUrl;
+    document.getElementById('setup-screen').style.display = 'none';
+    document.getElementById('app-screen').style.display = 'block';
+    document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
+    fetchData();
+  }
+}
+
+function copyScript() {
+  const sid = extractSheetId(document.getElementById('sheet-id-input').value.trim());
+  const script = GS_SCRIPT.replace('SPREADSHEET_ID_HERE', sid || 'YOUR_SPREADSHEET_ID');
+  navigator.clipboard.writeText(script).then(() => {
+    const btn = event.target.closest('button');
+    btn.innerHTML = '<i class="ti ti-check"></i> Copied!';
+    setTimeout(() => btn.innerHTML = '<i class="ti ti-copy"></i> Copy script', 2000);
+  });
+}
+
+function extractSheetId(input) {
+  const m = input.match(/\/d\/([a-zA-Z0-9_-]+)/);
+  return m ? m[1] : input.replace(/\s/g, '');
+}
+
+async function startApp() {
+  const rawId = document.getElementById('sheet-id-input').value.trim();
+  const webappUrl = document.getElementById('webapp-url-input').value.trim();
+  const err = document.getElementById('setup-err');
+  if (!rawId || !webappUrl) { err.style.display = 'block'; return; }
+  err.style.display = 'none';
+  WEBAPP_URL = webappUrl;
+  localStorage.setItem('ghk_config', JSON.stringify({ sheetId: extractSheetId(rawId), webappUrl }));
+  document.getElementById('setup-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
+  await fetchData();
+}
+
+function resetSetup() {
+  if (!confirm('Reset setup? This clears your configuration (not your data in Google Sheets).')) return;
+  localStorage.removeItem('ghk_config');
+  location.reload();
+}
+
+function showLoading(msg) { document.getElementById('loading-msg').textContent = msg || 'Syncing...'; document.getElementById('loading').style.display = 'flex'; }
+function hideLoading() { document.getElementById('loading').style.display = 'none'; }
+function setSyncBadge(state) {
+  const b = document.getElementById('sync-badge');
+  b.className = 'sync-pill ' + (state === 'ok' ? 'sync-ok' : state === 'busy' ? 'sync-busy' : 'sync-err');
+  b.innerHTML = state === 'ok' ? '<i class="ti ti-circle-check" style="font-size:13px"></i> Synced' : state === 'busy' ? '<i class="ti ti-refresh" style="font-size:13px"></i> Syncing' : '<i class="ti ti-alert-circle" style="font-size:13px"></i> Offline';
+}
+
+async function fetchData() {
+  setSyncBadge('busy');
+  try {
+    const res = await fetch(WEBAPP_URL + '?action=read');
+    const json = await res.json();
+    if (json.ok && json.rows.length > 1) {
+      expenses = json.rows.slice(1).map(r => ({
+        id: r[0], name: r[1], amount: parseFloat(r[2]), cat: r[3], who: r[4], date: r[5], note: r[6] || ''
+      })).filter(e => e.name && e.amount);
+    } else if (json.rows.length <= 1) {
+      expenses = [];
+    }
+    setSyncBadge('ok');
+  } catch(e) {
+    setSyncBadge('err');
+  }
+  render();
+  schedulePoll();
+}
+
+function schedulePoll() { clearTimeout(syncTimer); syncTimer = setTimeout(fetchData, 30000); }
+
+async function pushData() {
+  setSyncBadge('busy');
+  const header = ['id','name','amount','cat','who','date','note'];
+  const rows = [header, ...expenses.map(e => [e.id, e.name, e.amount, e.cat, e.who, e.date, e.note])];
+  try {
+    await fetch(WEBAPP_URL, { method:'POST', body: JSON.stringify({ action:'write', rows }) });
+    setSyncBadge('ok');
+  } catch(e) { setSyncBadge('err'); }
+}
+
+function normName(n) { return n.toLowerCase().replace(/\d.*$/, '').replace(/[^a-z\s]/g,'').trim(); }
+
+function buildRestockMap() {
+  const map = {};
+  [...expenses].sort((a,b) => a.date.localeCompare(b.date)).forEach(e => {
+    if (e.cat !== 'grocery' && e.cat !== 'household') return;
+    const key = normName(e.name);
+    if (!map[key]) map[key] = { displayName: e.name, dates: [], amounts: [] };
+    if (!map[key].dates.includes(e.date)) map[key].dates.push(e.date);
+    map[key].amounts.push(e.amount);
+  });
+  return Object.entries(map).map(([key, v]) => {
+    const dates = v.dates.sort();
+    const last = dates[dates.length - 1];
+    let avgGap = null;
+    if (dates.length >= 2) {
+      const gaps = [];
+      for (let i = 1; i < dates.length; i++) {
+        const diff = (new Date(dates[i]) - new Date(dates[i-1])) / 86400000;
+        if (diff > 1) gaps.push(diff);
+      }
+      if (gaps.length) avgGap = Math.round(gaps.reduce((a,b)=>a+b,0)/gaps.length);
+    }
+    const avgCost = Math.round(v.amounts.reduce((a,b)=>a+b,0)/v.amounts.length);
+    let daysLeft = null, pct = null;
+    if (avgGap) {
+      const daysSince = Math.round((new Date() - new Date(last)) / 86400000);
+      daysLeft = avgGap - daysSince;
+      pct = Math.max(0, Math.min(100, Math.round(daysLeft / avgGap * 100)));
+    }
+    return { key, displayName: v.displayName, dates, last, avgGap, daysLeft, pct, avgCost, count: dates.length };
+  }).sort((a,b) => {
+    if (a.daysLeft === null && b.daysLeft === null) return 0;
+    if (a.daysLeft === null) return 1; if (b.daysLeft === null) return -1;
+    return a.daysLeft - b.daysLeft;
+  });
+}
+
+function catBadge(c) {
+  const m = {grocery:'bg-g',household:'bg-h',food:'bg-f',other:'bg-o'};
+  const l = {grocery:'Grocery',household:'Household',food:'Food',other:'Other'};
+  return `<span class="badge ${m[c]||'bg-o'}">${l[c]||c}</span>`;
+}
+
+async function addExpense() {
+  const name = document.getElementById('exp-name').value.trim();
+  const amount = parseFloat(document.getElementById('exp-amount').value);
+  const cat = document.getElementById('exp-cat').value;
+  const who = document.getElementById('exp-who').value;
+  const date = document.getElementById('exp-date').value;
+  const note = document.getElementById('exp-note').value.trim();
+  if (!name || !amount || !date) { alert('Please fill name, amount and date.'); return; }
+  expenses.unshift({ id: Date.now().toString(), name, amount, cat, who, date, note });
+  document.getElementById('exp-name').value = '';
+  document.getElementById('exp-amount').value = '';
+  document.getElementById('exp-note').value = '';
+  render();
+  await pushData();
+}
+
+async function deleteExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  expenses = expenses.filter(e => e.id.toString() !== id.toString());
+  render();
+  await pushData();
+}
+
+function filterCat(c, btn) {
+  catFilter = c;
+  document.querySelectorAll('.fbtn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  renderExpenses();
+}
+
+function showTab(name, btn) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById(name).classList.add('active');
+  btn.classList.add('active');
+  render();
+}
+
+function getMonthExp() {
+  const n = new Date();
+  return expenses.filter(e => { const d = new Date(e.date); return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear(); });
+}
+
+function render() { renderDash(); renderExpenses(); renderRestock(); renderReport(); }
+
+function renderDash() {
+  const me = getMonthExp();
+  const total = me.reduce((s,e)=>s+e.amount,0);
+  const wk = expenses.filter(e=>(new Date()-new Date(e.date))/86400000<=7);
+  const wkT = wk.reduce((s,e)=>s+e.amount,0);
+  const youT = me.filter(e=>e.who==='You').reduce((s,e)=>s+e.amount,0);
+  const wifeT = me.filter(e=>e.who==='Wife').reduce((s,e)=>s+e.amount,0);
+  document.getElementById('dash-metrics').innerHTML = `
+    <div class="metric"><div class="metric-label">This month</div><div class="metric-value">₹${total.toLocaleString('en-IN')}</div><div class="metric-sub">${me.length} transactions</div></div>
+    <div class="metric"><div class="metric-label">This week</div><div class="metric-value">₹${wkT.toLocaleString('en-IN')}</div><div class="metric-sub">last 7 days</div></div>
+    <div class="metric"><div class="metric-label">You paid</div><div class="metric-value">₹${youT.toLocaleString('en-IN')}</div><div class="metric-sub">${total?Math.round(youT/total*100):0}%</div></div>
+    <div class="metric"><div class="metric-label">Wife paid</div><div class="metric-value">₹${wifeT.toLocaleString('en-IN')}</div><div class="metric-sub">${total?Math.round(wifeT/total*100):0}%</div></div>`;
+  const cats=['grocery','household','food','other'],catL=['Grocery','Household','Food','Other'],catC=['#3B6D11','#185FA5','#EF9F27','#888780'];
+  const catD=cats.map(c=>me.filter(e=>e.cat===c).reduce((s,e)=>s+e.amount,0));
+  if(mChart)mChart.destroy();
+  const ctx=document.getElementById('monthChart');
+  if(ctx)mChart=new Chart(ctx,{type:'bar',data:{labels:catL,datasets:[{data:catD,backgroundColor:catC,borderRadius:6,borderSkipped:false}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{y:{beginAtZero:true,ticks:{callback:v=>'₹'+v,font:{size:11}},grid:{color:'rgba(128,128,128,0.08)'}},x:{grid:{display:false},ticks:{font:{size:12}}}}}});
+  document.getElementById('split-view').innerHTML=`
+    <div class="row"><span>You</span><span style="font-weight:700">₹${youT.toLocaleString('en-IN')}</span></div>
+    <div class="row"><span>Wife</span><span style="font-weight:700">₹${wifeT.toLocaleString('en-IN')}</span></div>
+    <div class="row" style="font-weight:700"><span>Total</span><span>₹${total.toLocaleString('en-IN')}</span></div>`;
+  const rm=buildRestockMap(),alertItems=rm.filter(r=>r.daysLeft!==null&&r.daysLeft<=3);
+  document.getElementById('dash-alerts').innerHTML=!alertItems.length?'<div class="empty"><i class="ti ti-circle-check"></i>All stocked up!</div>':alertItems.map(r=>{
+    const msg=r.daysLeft<=0?'Overdue!':r.daysLeft===1?'Due tomorrow':`Due in ${r.daysLeft} days`;
+    const cls=r.daysLeft<=0?'tag-overdue':'tag-soon';
+    return `<div class="row"><div><div style="font-size:14px;font-weight:500">${r.displayName}</div><div style="font-size:12px;color:var(--text2)">~every ${r.avgGap} days · last ${r.last}</div></div><span class="badge ${cls}">${msg}</span></div>`;
+  }).join('');
+}
+
+function renderExpenses() {
+  const list=catFilter==='all'?expenses:expenses.filter(e=>e.cat===catFilter);
+  document.getElementById('expense-list').innerHTML=!list.length?'<div class="empty"><i class="ti ti-receipt"></i>No expenses yet.</div>':[...list].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:10px;flex:1;min-width:0">
+        <div class="avatar ${e.who==='You'?'av-y':'av-w'}">${e.who==='You'?'YO':'W'}</div>
+        <div style="min-width:0"><div style="font-size:14px">${e.name} ${catBadge(e.cat)}</div><div style="font-size:12px;color:var(--text2)">${e.date}${e.note?' · '+e.note:''}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;flex-shrink:0">
+        <span style="font-size:15px;font-weight:700">₹${e.amount.toLocaleString('en-IN')}</span>
+        <button class="btn-sm" onclick="deleteExpense('${e.id}')" aria-label="Delete"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>`).join('');
+}
+
+function renderRestock() {
+  const rm=buildRestockMap();
+  document.getElementById('restock-list').innerHTML=!rm.length?'<div class="empty"><i class="ti ti-refresh"></i>Log some grocery expenses and patterns will appear here automatically.</div>':rm.map(r=>{
+    let tagHtml='',barHtml='';
+    if(r.avgGap===null){tagHtml=`<span class="badge tag-new">First purchase</span>`;}
+    else{
+      const msg=r.daysLeft<=0?'Overdue!':r.daysLeft===1?'Due tomorrow':`${r.daysLeft} days left`;
+      const cls=r.daysLeft<=0?'tag-overdue':r.daysLeft<=3?'tag-soon':'tag-ok';
+      const barCol=r.daysLeft<=0?'#E24B4A':r.daysLeft<=3?'#EF9F27':'#1D9E75';
+      tagHtml=`<span class="badge ${cls}">${msg}</span>`;
+      barHtml=`<div class="prog-wrap"><div class="prog-bar" style="width:${r.pct}%;background:${barCol}"></div></div>`;
+    }
+    return `<div class="row"><div style="flex:1"><div style="font-size:14px;font-weight:500">${r.displayName}</div><div style="font-size:12px;color:var(--text2)">${r.avgGap?`~every ${r.avgGap} days`:'Calculating...'} · avg ₹${r.avgCost} · ${r.count} purchase${r.count>1?'s':''}</div><div style="font-size:11px;color:var(--text3)">Last: ${r.last}</div>${barHtml}</div><div style="margin-left:12px">${tagHtml}</div></div>`;
+  }).join('');
+}
+
+function getRepExp() {
+  const p=document.getElementById('rep-period')?document.getElementById('rep-period').value:'month',n=new Date();
+  return expenses.filter(e=>{const d=new Date(e.date);
+    if(p==='week'){const s=new Date(n);s.setDate(s.getDate()-s.getDay());return d>=s;}
+    if(p==='month')return d.getMonth()===n.getMonth()&&d.getFullYear()===n.getFullYear();
+    if(p==='last30')return(n-d)/86400000<=30;return true;});
+}
+
+function renderReport() {
+  const fe=getRepExp(),total=fe.reduce((s,e)=>s+e.amount,0);
+  const youT=fe.filter(e=>e.who==='You').reduce((s,e)=>s+e.amount,0);
+  const wifeT=fe.filter(e=>e.who==='Wife').reduce((s,e)=>s+e.amount,0);
+  const cats=['grocery','household','food','other'],catL=['Grocery','Household','Food','Other'],catC=['#3B6D11','#185FA5','#EF9F27','#888780'];
+  const catD=cats.map(c=>fe.filter(e=>e.cat===c).reduce((s,e)=>s+e.amount,0));
+  const rm=document.getElementById('rep-metrics');
+  if(rm)rm.innerHTML=`
+    <div class="metric"><div class="metric-label">Total spent</div><div class="metric-value">₹${total.toLocaleString('en-IN')}</div></div>
+    <div class="metric"><div class="metric-label">Transactions</div><div class="metric-value">${fe.length}</div></div>
+    <div class="metric"><div class="metric-label">You paid</div><div class="metric-value">₹${youT.toLocaleString('en-IN')}</div></div>
+    <div class="metric"><div class="metric-label">Wife paid</div><div class="metric-value">₹${wifeT.toLocaleString('en-IN')}</div></div>`;
+  if(rChart)rChart.destroy();
+  const rc=document.getElementById('repChart');
+  if(rc)rChart=new Chart(rc,{type:'doughnut',data:{labels:catL,datasets:[{data:catD,backgroundColor:catC,borderWidth:0,hoverOffset:6}]},options:{responsive:true,maintainAspectRatio:false,cutout:'60%',plugins:{legend:{display:false}}}});
+  const leg=document.getElementById('rep-legend');
+  if(leg)leg.innerHTML=catL.map((l,i)=>`<span style="display:flex;align-items:center;gap:4px"><span style="width:10px;height:10px;border-radius:2px;background:${catC[i]};display:inline-block"></span>${l} ₹${catD[i].toLocaleString('en-IN')}</span>`).join('');
+  const rl=document.getElementById('rep-list');
+  if(rl)rl.innerHTML=!fe.length?'<div class="empty">No transactions in this period.</div>':[...fe].sort((a,b)=>b.date.localeCompare(a.date)).map(e=>`
+    <div class="row">
+      <div style="display:flex;align-items:center;gap:10px">
+        <div class="avatar ${e.who==='You'?'av-y':'av-w'}">${e.who==='You'?'YO':'W'}</div>
+        <div><div style="font-size:14px">${e.name} ${catBadge(e.cat)}</div><div style="font-size:12px;color:var(--text2)">${e.date}${e.note?' · '+e.note:''} · ${e.who}</div></div>
+      </div>
+      <span style="font-size:15px;font-weight:700">₹${e.amount.toLocaleString('en-IN')}</span>
+    </div>`).join('');
+}
+
+init();
+</script>
+</body>
+</html>
